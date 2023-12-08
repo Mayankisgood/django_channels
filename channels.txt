@@ -1,0 +1,356 @@
+-->1 channels install kare then , then instal apps mein add kare 
+-->2 seetings.py mein -- aap name or channels likhe
+-3->seetings.py mein -->    ASGI_APPLICATION = "myproject.asgi.application"
+-4-> asgi.py mein ye likhe ---
+from channels.routing import ProtocolTypeRouter
+application = ProtocolTypeRouter({
+    "http":get_asgi_application(),
+    # just http for now
+})
+
+    -- ProtocolTypeRouter -- this will define a fixed type value that their scope contains ,
+            so you can use this to distinguish between incoming connection types.
+            it shuold be the top level of your ASGI application stackand the main entry in
+            your routing file
+
+            ProtocolTypeRouter({
+                "http":some_app,
+                "websocket":some_other_app,
+            })
+
+
+-5-> daphne ko include kare... settings.py mein
+-6-> A consumer is the basic unit of Channels code. consumers are like django views.
+     Allow you to write syncronous ans asyncronous ,and deal with handoff and threading
+    app mein -->creating consumers -->
+
+    for sync --->
+        from channels.consumer import SyncConsumer
+        Class MySyncConsumer(SyncConsumer):
+            def websocket_connect(self,event):
+                print("web_socket ..connect)
+            def websocket_receive(self,event):
+                print("web_socket ..receive)
+            def websocket_disconnect(self,event):
+                print("websocket_disconnect")
+
+
+     for Async --->
+        from channels.consumer import AsyncConsumer
+        Class MySyncConsumer(AsyncConsumer):
+            def websocket_connect(self,event):
+                print("web_socket ..connect,event)
+            def websocket_receive(self,event):
+                print("web_socket ..receive",event)
+            def websocket_disconnect(self,event):
+                print("websocket_disconnect",event)
+
+-7-> routing --> ye same urls.py ki tarah hoti hai , ismein path likhte hai consumers.py ka..
+      --> create routing.py file and then write all  web_socket url pattern inside this file 
+     --> open asgi.py file and mentioned your routing.py file
+
+     example--> in routhing.py --> from django.urls import path
+                                    from .consumer import *
+
+                                    web_socket_urlpatterns = [
+                                        path('ws/sc/',consumers.MySyncConsumer.as_asgi()),
+                                    ]
+
+
+
+               in asgi.py mein -->from channels.routing import ProtocolTypeRouter
+                                   import app.routing
+
+                                    application = ProtocolTypeRouter({
+                                        "http":get_asgi_application(),
+                                        'web_socket': URLRouter(
+                                            app.routing.web_socket_urlpatterns
+                                        )
+                                    })
+8. Events --> 
+        1. connect-receive event -->sent to the application when the client initially opens a connection
+                    and is about to finish the websocket handsahke
+                    "type" : "websocket_connect"
+        2. Accept-send event --> 
+           send by the application when it wishes to accept an incoming connection
+           "type": "web_socket.accept"
+           "subprotocol" : None
+            "headers": [name,vale] where name is header name and value is header value
+        3. receive -receive event -->
+           send to the application when a data message is received from the client
+            "type": "web_socket.receive"  
+        4. Send-send event -->
+            "type":"web_socket.send"    
+        5. Disconect-receive event -->
+            "type":"web_socket.disconnect"
+        6. Close-send event -->
+            "type":"web_socket.close"
+            
+--> from channels.auth import AuthMiddlewareStack ye bhi include kare asgi.py mein
+                 application = ProtocolTypeRouter({
+    'http':get_asgi_application,
+    'websocket':AuthMiddlewareStack(URLRouter(
+        app.routing.web_socket_urlpatterns
+    ))
+})
+
+
+--7--> web socket from frontend -->
+
+      -- to construct a websocket use the websocket() constructor
+         Example --
+             var ws = new WebSocket('ws://127.0.0.1:8000/ws/sc/')
+        is object ka use karke hum properties or method ko call kar sakte hai
+        1. onopen -- it is called when the websocket connections readystate changes to 1,
+           this indicates taht the connection is ready to send and receive data. it is called 
+           with an Event.
+           Example : 
+           ws.onopen = function(event){
+            console.log("WebSocket Connection open",event)
+           }
+        2. on message -- it is called when a message is received from the server. it is called 
+           with a messageEvent
+            Example --
+            ws.onmessage = function(event){
+                console.log("websocket message receved from server",event)
+            }
+        3. onerror -- the websocket interfaces onerror evevnt handle property is a function        
+           which gets called when an error occurs on the websocket.
+           ws.onerror = function(event){
+            console.log("websocker error occured",event)
+           }
+        4. onclose -- the websocket.onclose property is an event handler when the websocket          
+           connections readystate changes to closed. it is called with a close event.
+           Example :-
+           ws.onclose = function(event){
+            console.log("web socket connection closed")
+           }
+    -------Events --- 
+        -- Open --> The open event is fired when a connection with a websocket is opened
+           Example --> 
+           ws.addEventListner('open',(event)=>{
+            console.log("websocket connection open")
+           }
+           )
+        -- error -> the error event is fired when a connection with a websocket has been 
+                    closed due to an error
+
+            Example --> 
+           ws.addEventListner('error',(event)=>{
+            console.log("websocket error occured",error)
+           })
+    -- Methods ---> 
+          close -- the websocket.close() method closes the websocket connection or connection 
+                   attempt, if any. if  the connection is already closed, this method does nothing 
+          syntax : - ws.close(code,reason)
+            yaa --  ws.close() se close kar denge
+          send() -- client ko sever ke paas koi msg bhejna ho to to , if the data cant be sent
+                   it will close automatically.
+            syntax : - ws.send("hello")
+        Ready state --> 
+           value    state        description
+            0        connecting    socket has been craeted. the coonection is not yet open.
+            1         Open         the connection is open and redy to communicate
+            2        closing        the connection is in the process of closing
+            3        closed         the connection is closed or could not be opened
+            
+class 11 --> 
+    Server side --> 
+        1. When sending data to client
+           . python to string
+        2. When Receiving data from client
+            . string to python
+    client side --> 
+        1. when sending data to server
+            . javascript object to string
+        2. When Receiving data from server
+            . string to javascript object
+    
+
+    backend mein --    
+    json.loads() - it convert json string to python dict
+    json.dumps() -- it convert python dict to jsong string
+
+    frontend mein --
+    JSON.parse() -- it convert json string in to javascript object
+    json.stringify() -- this method is used to convert js object in to json string.
+
+
+
+
+Channels Layers ------>
+        it allows you to talk between different insatnces of an application
+        -- insatnce yaani jab hum url hit karte hai to websocket url hit 
+           hota hai or ek connection ban jata jai, jab hum channels layers ka use karte hai 
+           to different instances ban jaate hai
+        production mein to redis kaam aayega, lekin local aap db use kar sakte hai
+        
+     Channels -- jo chnnel ka name janta ho wo chanels ko msg kar sakta hai      
+     Groups --  multiple chanels ko ek group mein add karke , sabhi channels ko ek saath
+               msg kar sakte hai.ye groups mein kar sakte hai, channel can be aded or remove ,
+               only you wil know the group name,
+    message -- message must be a dict, because these messsages are sometimes sent over a 
+              network, they need to be serializable
+    Redis Channel layer -- channel layer use karane ke liye channels_redis package install karte hai
+         -- windows ke liye mimurai install karte hai
+         -- pip instal channels_redis
+         -- in settings.py --> # channel redis layer = Use Redia 5 version here
+                            CHANNEL_LAYERS = {
+                                "default": {
+                                    "BACKEND": "channels_redis.core.RedisChannelLayer",
+                                    "CONFIG": {
+                                        "hosts": [("localhost", 6379)],
+                                    },
+                                },
+                            }     
+        -- get_channel_layer() -- to get default channel layer from a project 
+        -- send() -- two argument , the channel to send on , as a uniode string
+                                    the mesage to send as serailizable dict
+                 syntax -- send('channels_name',message)
+
+        -- group_send -- syntax -- group_send('group_name',message)
+
+        -- group_add() -- syntax -- group_add('group_name',"channel_name")
+                         ex --group_add('frends', self.channel_name)
+                         
+
+        -- group_discard() -- syntax -- group_discard('group_name',"channel_name")
+                                 group_discard('frends', self.channel_name)
+ 
+
+
+        errors ---
+        MessagetoLarge -- when size is too Large over the capacity of layer
+        ChannelFull - destination channel is over capacity
+
+    --> memurai (redis for window) kyu ki redis is supported oficially linux
+
+
+Database -- django orm is a syncronous piece of code , if you want to write orm in 
+      async you have to do special handling to make sure its connection are closed
+      property 
+    
+    write your orm query in a seprate function or method then call it with database 
+    _sync_to_async. 
+    Ex --> 
+    @database_sync_to_aync
+    def get_name(self):
+        return User.objects.all()[0].name
+
+
+        
+------> in vs code gs12 se start hai ye...
+---> video no. 17 --> Websocket consumer and AsyncWebsocket consumer
+
+    -- bus syntax change hai baaaki same hai, 
+    --connect(self), receive(self, text_data = None,bytes_data = None), disconnect(self,close_code)
+      accept(),accept("subprotocol")- this is used to accept the connection and specify a choosen subprotocol
+    close() -- this is used to reject the connection
+    close(code = 4123) -- reject  connection with websocket error code
+    send(text_data="string") -- this is used to send data to client
+    send(bytes_data=data) -- this is used to send binary frame to client
+
+    --------->
+    class MywebsocketConsumer(WebsocketConsumer):
+    def connect(self):
+        print('web socket connected)
+        self.accept()
+    def receive(self, text_data=None, bytes_data=None):
+        print("msg received from client", text_data)
+        self.send(text_data="Hello world!") # data sending to client
+
+    def disconnect(self,close_code):
+        print("web scoket disconnect", close_code)
+
+    Asnync mein --> 
+    from channels.generic.websocket import AsyncWebsocketConsumer
+    class MywebsocketConsumer(AsyncWebsocketConsumer):
+    aync def connect(self):
+            print('web socket connected)
+            await self.accept()
+    async def receive(self, text_data=None, bytes_data=None):
+            print("msg received from client", text_data)
+            await self.send(text_data="Hello world!") # data sending to client
+
+    async def disconnect(self,close_code):
+            await print("web scoket disconnect", close_code)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+
+
+
+
+
+
+
+
+    

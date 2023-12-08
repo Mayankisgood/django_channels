@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat app</title>
+</head>
+<body>
+    <h1>groupName: {{groupname}}</h1>
+    <textarea  id="chat-log" cols="100" rows="20">
+        {% for chat in chats %}
+            {{chat.content}}
+        {% endfor %}
+
+    </textarea>
+    <input type="text" id="chat-message-input" size = "100"><br>
+    <input type="button" value="send" id = "chat-message-submit">
+<!-- jo humara groupname aa rha hai view se wo js mein aise use karege -->
+    {{groupname|json_script:"group_name"}}
+    
+</body>
+   
+
+
+<script>
+    const groupName = JSON.parse(document.getElementById('group_name').textContent)
+    console.log(groupName)
+    {% comment %} var ws = new WebSocket('ws://127.0.0.1:8000/ws/sc/') {% endcomment %}
+    var ws = new WebSocket('ws://' + window.location.host + '/ws/asc/' + groupName + '/')
+
+    ws.onopen = function (){
+        console.log('web scoket connection open')
+       
+    }
+
+    ws.onmessage =  function(event){
+        console.log("message receive from server",event)
+        console.log("type of msg data",typeof (event.data))
+        const data  = JSON.parse(event.data)
+        console.log("parsed data",data)
+        console.log("type of parsed data",typeof(data))
+        console.log("actual_msg",data.msg)
+        document.querySelector('#chat-log').value += (data.msg + '\n')
+    }
+
+    ws.onerror = function(event){
+        console.log('web scoket connection error',event)
+    }
+
+    ws.onclose = function(event){
+        console.log('web scoket connection close',event)
+    } 
+
+    document.getElementById("chat-message-submit").onclick = function(event){
+        const messageInputDom = document.getElementById("chat-message-input")
+        const message = messageInputDom.value
+        ws.send(JSON.stringify({
+            'msg':message
+        }))
+        messageInputDom.value = ''
+    } 
+
+
+
+
+
+</script>
+</html>

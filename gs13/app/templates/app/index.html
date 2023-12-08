@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>   
+    <h1>Count</h1>
+    <h2 id="dt"></h2>
+    <script>
+        var ws = new WebSocket("ws://localhost:8000/ws/asc/")
+        ws.onopen = function(){
+            console.log("websocket open")
+            ws.send("hiiiii...")
+        }
+        ws.onmessage = function(event){
+            console.log("message received from server event", event)
+            console.log("message data received from server", event.data)
+            document.getElementById("dt").innerText = event.data
+        }
+
+    </script>
+</body>
+</html>

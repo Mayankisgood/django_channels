@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h1> Count</h1>
+    <h1 id = "count"> Count</h1>
+</body>
+<script>
+    var ws = new WebSocket('ws://127.0.0.1:8000/ws/sc/')
+    
+    ws.onopen = function (){
+        console.log('web scoket connection open')
+        ws.send("hi....")
+    }
+    ws.onmessage =  function (event){
+        console.log('message receive from server',event.data)
+        console.log('ytype of event data',typeof (event.data))
+  
+
+        var data = JSON.parse(event.data)
+        console.log('parsed data',data)
+        console.log('type of parsed data',typeof (data))
+        document.getElementById("count").innerText = data.count
+
+
+    }
+    ws.onerror = function(event){
+        console.log('web scoket connection error',event)
+    }
+
+    ws.onclose = function(event){
+        console.log('web scoket connection close',event)
+    } 
+
+// event ke through, dono type mein it will work...
+
+{% comment %} ws.addEventListener ('open',() => {
+    console.log('web scoket connection open')
+    ws.send("hi....")
+})
+
+ws.addEventListener ('message',(event) => {
+    console.log('message receive from server',event)
+})
+
+ws.addEventListener ('error',(event) => {
+    console.log('error',event)
+
+})
+
+ws.addEventListener ('close',(event) => {
+    console.log('web scoket connection open',event)
+
+}) {% endcomment %}
+
+</script>
+</html>
